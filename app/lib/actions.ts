@@ -47,7 +47,7 @@ export async function createInvoice(prevState: State, formData: FormData){
     // insert the data into the database
     try {
         await sql`
-        INSERT INTO Invoices (customer_id, amount, status, date)
+        INSERT INTO invoices (customer_id, amount, status, date)
         VALUES (${customerId}, ${amountInCents}, ${status}, ${date})
         `;
     } catch (error){
@@ -62,13 +62,21 @@ export async function createInvoice(prevState: State, formData: FormData){
 
 const UpdateInvoice = FormSchema.omit({id: true, data: true});
 
-export async function updateInvoice(id: string, formData: FormData) {
-    const { customerId, amount, status } = UpdateInvoice.parse({
+export async function updateInvoice(id: string, prevState: State, formData: FormData) {
+    const validatedUpdatedFields = UpdateInvoice.safeParse({
         customerId: formData.get('customerId'),
         amount: formData.get('amount'),
         status: formData.get('status'),
     });
-    const amountInCents = amount * 100;
+
+    if(!validatedUpdatedFields.success){
+        return {
+            errors: validatedUpdatedFields.error.flatten().fieldErrors,
+            message: 'Missing Fields. Failed to Create Invoice.',
+        };
+    }
+        const { customerId, amount, status } = validatedUpdatedFields.data;
+        const amountInCents = amount * 100;
 
     try {
         await sql`
